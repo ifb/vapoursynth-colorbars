@@ -47,6 +47,7 @@ typedef struct {
     VSVideoInfo vi;
     VSNodeRef *node;
     system_type_e resolution;
+    int hdr;
     int wcg;
     int compatability;
     int subblack;
@@ -160,6 +161,82 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
         const int ntsc_heights[3][4] = { { 324, 41, 121, 486 },
                                          { 324, 40, 122, 486 },
                                          { 320, 40, 120, 480 } };
+
+
+        // [hdr system][bitdepth][value]
+        const uint16_t hdr_p1_r[3][2][9] = { { {  414,  940,  940,   64,   64,  940,  940,   64,  414 },
+                                               { 1656, 3760, 3760,  256,  256, 3760, 3760,  256, 1656 } },
+                                             { {  414,  940,  940,   64,   64,  940,  940,   64,  414 },
+                                               { 1656, 3760, 3760,  256,  256, 3760, 3760,  256, 1656 } },
+                                             { {  409, 1023, 1023,    0,    0, 1023, 1023,    0,  409 },
+                                               { 1638, 4095, 4095,    0,    0, 4095, 4095,    0, 1638 } } };
+        const uint16_t hdr_p1_g[3][2][9] = { { {  414,  940,  940,  940,  940,   64,   64,   64,  414 },
+                                               { 1656, 3760, 3760, 3760, 3760,  256,  256,  256, 1656 } },
+                                             { {  414,  940,  940,  940,  940,   64,   64,   64,  414 },
+                                               { 1656, 3760, 3760, 3760, 3760,  256,  256,  256, 1656 } },
+                                             { { 409, 1023, 1023,  1023, 1023,    0,    0,    0,  409 },
+                                               { 1638, 4095, 4095, 4095, 4095,    0,    0,    0, 1638 } } };
+        const uint16_t hdr_p1_b[3][2][9] = { { {  414,  940,   64,  940,   64,  940,   64,  940,  414 },
+                                               { 1656, 3760,  256, 3760,  256, 3760,  256, 3760, 1656 } },
+                                             { {  414,  940,   64,  940,   64,  940,   64,  940,  414 },
+                                               { 1656, 3760,  256, 3760,  256, 3760,  256, 3760, 1656 } },
+                                             { {  409, 1023,    0, 1023,    0, 1023,    0, 1023,  409 },
+                                               { 1638, 4095,    0, 4095,    0, 4095,    0, 4095, 1638 } } };
+
+        const uint16_t hdr_p2_r[3][2][9] = { { {  414,  721,  721,   64,   64,  721,  721,   64,  414 },
+                                               { 1656, 2884, 2884,  256,  256, 2884, 2884,  256, 1656 } },
+                                             { {  414,  572,  572,   64,   64,  572,  572,   64,  414 },
+                                               { 1656, 2288, 2288,  256,  256, 2288, 2288,  256, 1656 } },
+                                             { {  409,  593,  593,    0,    0,  593,  593,    0,  409 },
+                                               { 1638, 2375, 2375,    0,    0, 2375, 2375,    0, 1638 } } };
+        const uint16_t hdr_p2_g[3][2][9] = { { {  414,  721,  721,  721,  721,   64,   64,   64,  414 },
+                                               { 1656, 2884, 2884, 2884, 2884,  256,  256,  256, 1656 } },
+                                             { {  414,  572,  572,  572,  572,   64,   64,   64,  414 },
+                                               { 1656, 2288, 2288, 2288, 2288,  256,  256,  256, 1656 } },
+                                             { {  409,  593,  593,  593,  593,    0,    0,    0,  409 },
+                                               { 1638, 2375, 2375, 2375, 2375,    0,    0,    0, 1638 } } };
+        const uint16_t hdr_p2_b[3][2][9] = { { {  414,  721,   64,  721,   64,  721,   64,  721,  414 },
+                                               { 1656, 2884,  256, 2884,  256, 2884,  256, 2884, 1656 } },
+                                             { {  414,  572,   64,  572,   64,  572,   64,  572,  414 },
+                                               { 1656, 2288,  256, 2288,  256, 2288,  256, 2288, 1656 } },
+                                             { {  409,  593,    0,  593,    0,  593,    0,  593,  409 },
+                                               { 1638, 2375,    0, 2375,    0, 2375,    0, 2375, 1638 } } };
+
+        const uint16_t hdr_p3_gray[3][2][15] = { { {  721,    4,   64,  152,  239,  327,  414,  502,  590,  677,  765,  852,  940, 1019,  721 },
+                                                   { 2884,   16,  256,  608,  956, 1308, 1656, 2008, 2360, 2708, 3060, 3408, 3760, 4076, 2884 } },
+                                                 { {  572,    4,   64,  152,  239,  327,  414,  502,  590,  677,  765,  852,  940, 1019,  572 },
+                                                   { 2288,   16,  256,  608,  956, 1308, 1656, 2008, 2360, 2708, 3060, 3408, 3760, 4076, 2288 } },
+                                                 { {  593,    0,    0,  102,  205,  307,  409,  512,  614,  716,  818,  921, 1023, 1023,  593 },
+                                                   { 2375,    0,    0,  410,  819, 1229, 1638, 2048, 2457, 2867, 3276, 3686, 4095, 4095, 2375 } } };
+
+        const uint16_t hdr_p4_gray[3][2][3] = { { {  64,   4, 1019 },
+                                                  { 256,  16, 4079 } },
+                                                { {  64,   4, 1019 },
+                                                  { 256,  16, 4079 } },
+                                                { {   0,   0, 1023 },
+                                                  {   0,   0, 4075 } } };
+
+        const uint16_t hdr_p5_r[3][2][15] = { { {  713,  538,  512,   64,   48,   64,   80,   64,   99,   64,  721,   64,  651,  639,  227 },
+                                                { 2852, 2152, 2048,  256,  192,  256,  320,  256,  396,  256, 2884,  256, 2604, 2556,  908 } },
+                                              { {  568,  484,  474,   64,   48,   64,   80,   64,   99,   64,  572,   64,  536,  530,  317 },
+                                                { 2272, 1936, 1896,  256,  192,  256,  320,  256,  396,  256, 2288,  256, 2144, 2120, 1268 } },
+                                              { {  589,  491,  478,    0,    0,    0,   20,    0,   41,    0,  593,    0,  551,  544,  296 },
+                                                { 2356, 1964, 1915,    0,    0,    0,   82,    0,  164,    0, 2375,    0, 2206, 2178, 1184 } } };
+
+        const uint16_t hdr_p5_g[3][2][15] = { { {  719,  709,  706,   64,   48,   64,   80,   64,   99,   64,  721,   64,  286,  269,  147 },
+                                                { 2876, 2836, 2824,  256,  192,  256,  320,  256,  396,  256, 2884,  256, 1144, 1076,  588 } },
+                                              { {  571,  566,  564,   64,   48,   64,   80,   64,   99,   64,  572,   64,  361,  350,  236 },
+                                                { 2284, 2264, 2256,  256,  192,  256,  320,  256,  396,  256, 2288,  256, 1444, 1400,  944 } },
+                                              { {  592,  586,  584,    0,    0,    0,   20,    0,   41,    0,  593,    0,  347,  334,  201 },
+                                                { 2370, 2345, 2339,    0,    0,    0,   82,    0,  164,    0, 2375,    0, 1389, 1337,  805 } } };
+
+        const uint16_t hdr_p5_b[3][2][15] = { { {  316,  718,  296,   64,   48,   64,   80,   64,   99,   64,  721,   64,  705,  164,  702 },
+                                                { 1264, 2872, 1184,  256,  192,  256,  320,  256,  396,  256, 2884,  256, 2820,  656, 2808 } },
+                                              { {  381,  571,  368,   64,   48,   64,   80,   64,   99,   64,  572,   64,  564,  256,  562 },
+                                                { 1524, 2284, 1472,  256,  192,  256,  320,  256,  396,  256, 2288,  256, 2256, 1024, 2248 } },
+                                              { {  370,  592,  355,    0,    0,    0,   20,    0,   41,    0,  593,    0,  584,  225,  582 },
+                                                { 1480, 2368, 1420,    0,    0,    0,   82,    0,  164,    0, 2375,    0, 2336,  900, 2328 } } };
+
         // [resolution][compatability][bar width]
         const int p1_widths[8][3][10] = { { {   4, 101, 102, 102, 102, 102, 102, 101,   4 }, // 525-line (NTSC)
                                             {   4, 102, 102, 102, 100, 102, 102, 102,   4 },
@@ -212,8 +289,45 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                                             { 960, 1232,1648,680, 272, 280, 272, 280, 272, 824, 960 },
                                             { 944, 1248,1648,680, 272, 280, 272, 280, 272, 840, 944 } } };
 
+        // [resolution][bar width]
+        const int hdr_p1_widths[5][9] = { { 240, 206, 206, 206, 204, 206, 206, 206, 240 },   // 1080
+                                          { 304, 206, 206, 206, 204, 206, 206, 206, 304 },   // 2K
+                                          { 480, 412, 412, 412, 408, 412, 412, 412, 480 },   // UHD
+                                          { 608, 412, 412, 412, 408, 412, 412, 412, 608 },   // 4K
+                                          { 960, 824, 824, 824, 816, 824, 824, 824, 960 } }; // 8K
+
+        const int hdr_p3_widths[5][15] = { { 240, 206, 103, 103, 103, 103, 102, 102, 103, 103, 103, 103, 103, 103, 240 },   // 1080
+                                           { 304, 206, 103, 103, 103, 103, 102, 102, 103, 103, 103, 103, 103, 103, 304 },   // 2K
+                                           { 480, 412, 206, 206, 206, 206, 204, 204, 206, 206, 206, 206, 206, 206, 480 },   // UHD
+                                           { 608, 412, 206, 206, 206, 206, 204, 204, 206, 206, 206, 206, 206, 206, 608 },   // 4K
+                                           { 960, 824, 412, 412, 412, 412, 408, 408, 412, 412, 412, 412, 412, 412, 960 } }; // 8K
+
+                                                                                         // [hdr system][resolution][bar width]
+        const int hdr_p4_widths[3][5][4] = { { {  240,  559, 1015,  106 }, // HLG
+                                               {  304,  559, 1015,  170 },
+                                               {  480, 1118, 2030,  212 },
+                                               {  608, 1118, 2030,  340 },
+                                               {  960, 2236, 4060,  424 } } ,
+                                             { {  240,  559, 1015,  106 }, // PQ
+                                               {  304,  559, 1015,  170 },
+                                               {  480, 1118, 2030,  212 },
+                                               {  608, 1118, 2030,  340 },
+                                               {  960, 2236, 4060,  424 } } ,
+                                             { {  240,  551, 1023,  106 }, // PQ full range
+                                               {  304,  551, 1023,  170 },
+                                               {  480, 1102, 2046,  212 },
+                                               {  608, 1102, 2046,  340 },
+                                               {  960, 2204, 4092,  424 } } };
+
+        const int hdr_p5_widths[5][15] = { {  80,   80,   80,  136,   70,   68,   70,   68,   70,  238,  438,  282,   80,   80,   80 },   // 1080
+                                           { 144,   80,   80,  136,   70,   68,   70,   68,   70,  238,  438,  282,   80,   80,  144 },   // 2K
+                                           { 160,  160,  160,  272,  140,  136,  140,  136,  140,  476,  876,  564,  160,  160,  160 },   // UHD
+                                           { 288,  160,  160,  272,  140,  136,  140,  136,  140,  476,  876,  564,  160,  160,  288 },   // 4K
+                                           { 320,  320,  320,  544,  280,  272,  280,  272,  280,  952, 1752, 1128,  320,  320,  320 } }; // 8K
+
         const int compat = d->compatability;
         const int resolution = d->resolution;
+        const int hdr = d->hdr;
         const int wcg = d->wcg;
         const int depth = d->vi.format->bitsPerSample == 10 ? 0 : 1;
         const int iq = d->iq;
@@ -222,19 +336,28 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
 
         VSFrameRef *frame = 0;
         frame = vsapi->newVideoFrame(d->vi.format, width, height, 0, core);
-        if (resolution < HD720)
+        if (hdr)
         {
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", resolution == PAL ? 5 : 6, paReplace);
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", resolution == PAL ? 5 : 6, paReplace);
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", 6, paReplace);
+            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", 0, paReplace);
+            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", hdr == 1 ? 18 : 16, paReplace);
+            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", 9, paReplace);
         }
         else
         {
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", wcg ? 9 : 1, paReplace);
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", wcg ? 9 : 1, paReplace);
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", wcg ? 14 : 1, paReplace);
+            if (resolution < HD720)
+            {
+                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", resolution == PAL ? 5 : 6, paReplace);
+                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", 6, paReplace);
+                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", resolution == PAL ? 5 : 6, paReplace);
+            }
+            else
+            {
+                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", wcg ? 9 : 1, paReplace);
+                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", wcg ? 14 : 1, paReplace);
+                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", wcg ? 9 : 1, paReplace);
+            }
         }
-        vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_ColorRange", 1, paReplace); // limited
+        vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_ColorRange", hdr == 3 ? 0 : 1, paReplace); // limited, unless full range PQ
 
         uint16_t *y = (uint16_t *)vsapi->getWritePtr(frame, 0);
         uint16_t *u = (uint16_t *)vsapi->getWritePtr(frame, 1);
@@ -249,14 +372,12 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 uint16_t *edge_u = u;
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 9; bar++)
-                {
                     for (int i = 0; i < p1_widths[resolution][compat][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
                         *edge_y = ntsc1_y[depth][bar];
                         *edge_u = ntsc1_u[depth][bar];
                         *edge_v = ntsc1_v[depth][bar];
                     }
-                }
                 y += stride;
                 u += stride;
                 v += stride;
@@ -268,14 +389,12 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 uint16_t *edge_u = u;
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 9; bar++)
-                {
                     for (int i = 0; i < p1_widths[resolution][compat][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
                         *edge_y = ntsc2_y[depth][bar];
                         *edge_u = ntsc2_u[depth][bar];
                         *edge_v = ntsc2_v[depth][bar];
                     }
-                }
                 y += stride;
                 u += stride;
                 v += stride;
@@ -287,14 +406,12 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 uint16_t *edge_u = u;
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 10; bar++)
-                {
                     for (int i = 0; i < p4_widths[resolution][compat][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
                         *edge_y = ntsc3_y[depth][bar];
                         *edge_u = ntsc3_u[depth][bar];
                         *edge_v = ntsc3_v[depth][bar];
                     }
-                }
                 y += stride;
                 u += stride;
                 v += stride;
@@ -322,7 +439,96 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 v += stride;
             }
         }
-        else // HD and higher systems
+        else if ( hdr ) // HDR systems
+        {
+            const int shift = depth ? 4 : 0;
+            // pattern 1 - 100% top strip
+            for (int h = 0; h < height / 12; h++)
+            {
+                uint16_t *edge_y = y;
+                uint16_t *edge_u = u;
+                uint16_t *edge_v = v;
+                for (int bar = 0; bar < 9; bar++)
+                    for (int i = 0; i < hdr_p1_widths[resolution-3][bar]; i++, edge_y++, edge_u++, edge_v++)
+                    {
+                        *edge_y = hdr_p1_r[hdr-1][depth][bar] << shift;
+                        *edge_u = hdr_p1_g[hdr-1][depth][bar] << shift;
+                        *edge_v = hdr_p1_b[hdr-1][depth][bar] << shift;
+                    }
+                y += stride;
+                u += stride;
+                v += stride;
+            }
+            // pattern 2 - 75%/58% bars
+            for (int h = 0; h < height / 2; h++)
+            {
+                uint16_t *edge_y = y;
+                uint16_t *edge_u = u;
+                uint16_t *edge_v = v;
+                for (int bar = 0; bar < 9; bar++)
+                    for (int i = 0; i < hdr_p1_widths[resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
+                    {
+                        *edge_y = hdr_p2_r[hdr - 1][depth][bar] << shift;
+                        *edge_u = hdr_p2_g[hdr - 1][depth][bar] << shift;
+                        *edge_v = hdr_p2_b[hdr - 1][depth][bar] << shift;
+                    }
+                y += stride;
+                u += stride;
+                v += stride;
+            }
+            // pattern 3 - grayscale
+            for (int h = 0; h < height / 12; h++)
+            {
+                uint16_t *edge_y = y;
+                uint16_t *edge_u = u;
+                uint16_t *edge_v = v;
+                for (int bar = 0; bar < 15; bar++)
+                    for (int i = 0; i < hdr_p3_widths[resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
+                        *edge_y = *edge_u = *edge_v = hdr_p3_gray[hdr - 1][depth][bar] << shift;
+                y += stride;
+                u += stride;
+                v += stride;
+            }
+            // pattern 4 - ramp
+            for (int h = 0; h < height / 12; h++)
+            {
+                uint16_t *edge_y = y;
+                uint16_t *edge_u = u;
+                uint16_t *edge_v = v;
+                for (int bar = 0; bar < 2; bar++)
+                    for (int i = 0; i < hdr_p4_widths[hdr - 1][resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
+                        *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][bar] << shift;
+
+                uint16_t rampwidth = hdr_p4_widths[hdr - 1][resolution - 3][2];
+                uint16_t rampheight = hdr_p4_gray[hdr - 1][depth][2] - hdr_p4_gray[hdr - 1][depth][1];
+                float slope = (float)rampheight / (float)rampwidth;
+                for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
+                    *edge_y = *edge_u = *edge_v = (hdr_p4_gray[hdr - 1][depth][1] + i * slope) * (1 << depth * 4);
+                for (int i = 0; i < hdr_p4_widths[hdr - 1][resolution - 3][3]; i++, edge_y++, edge_u++, edge_v++)
+                    *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][2] << shift;
+                y += stride;
+                u += stride;
+                v += stride;
+            }
+            // pattern 5 - 75%/58% 709 bars
+            for (int h = 0; h < height / 4; h++)
+            {
+                uint16_t *edge_y = y;
+                uint16_t *edge_u = u;
+                uint16_t *edge_v = v;
+                for (int bar = 0; bar < 15; bar++)
+                    for (int i = 0; i < hdr_p5_widths[resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
+                    {
+                        *edge_y = hdr_p5_r[hdr - 1][depth][bar] << shift;
+                        *edge_u = hdr_p5_g[hdr - 1][depth][bar] << shift;
+                        *edge_v = hdr_p5_b[hdr - 1][depth][bar] << shift;
+                    }
+                y += stride;
+                u += stride;
+                v += stride;
+            }
+        }
+        else // HD and higher SDR systems
         {
             // pattern 1
             for (int h = 0; h < height / 12 * 7; h++)
@@ -331,14 +537,12 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 uint16_t *edge_u = u;
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 9; bar++)
-                {
                     for (int i = 0; i < p1_widths[resolution][compat][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
                         *edge_y = p1_y[wcg][depth][bar];
                         *edge_u = p1_u[wcg][depth][bar];
                         *edge_v = p1_v[wcg][depth][bar];
                     }
-                }
                 y += stride;
                 u += stride;
                 v += stride;
@@ -548,25 +752,37 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    const int resolutions[8][2] = { {  720,  486 },
-                                    {  720,  576 },
-                                    { 1280,  720 },
-                                    { 1920, 1080 },
-                                    { 2048, 1080 },
-                                    { 3840, 2160 },
-                                    { 4096, 2160 },
-                                    { 7680, 4320 } };
+    const int resolutions[8][4] = { {  720,  486, 30000, 1001 },
+                                    {  720,  576,    25,    1 },
+                                    { 1280,  720, 60000, 1001 },
+                                    { 1920, 1080, 30000, 1001 },
+                                    { 2048, 1080, 24000, 1001 },
+                                    { 3840, 2160, 60000, 1001 },
+                                    { 4096, 2160, 24000, 1001 },
+                                    { 7680, 4320, 60000, 1001 } };
     d.vi.width = resolutions[d.resolution][0];
     d.vi.height = resolutions[d.resolution][1];
     if (d.compatability == 2 && d.resolution == NTSC)
         d.vi.height = 480;
-
-    int pixformat = vsapi->propGetInt(in, "pixelformat", 0, &err);
+    d.hdr = vsapi->propGetInt(in, "hdr", 0, &err);
     if (err)
-        pixformat = pfYUV444P12;
-    if (pixformat != pfYUV444P12 && pixformat != pfYUV444P10)
+        d.hdr = 0;
+    if (d.hdr < 0 || d.hdr > 3)
     {
-        vsapi->setError(out, "ColorBars: invalid pixelformat, only YUV444P10 and YUV444P12 supported");
+        vsapi->setError(out, "ColorBars: invalid HDR mode");
+        return;
+    }
+    int pixformat = vsapi->propGetInt(in, "format", 0, &err);
+    if (err)
+        vsapi->setError(out, "ColorBars: invalid format, only RGB30 and RGB48 for HDR formats");
+    if (!d.hdr && pixformat != pfYUV444P12 && pixformat != pfYUV444P10)
+    {
+        vsapi->setError(out, "ColorBars: invalid format, only YUV444P10 and YUV444P12 for SDR formats");
+        return;
+    }
+    if (d.hdr && pixformat != pfRGB30 && pixformat != pfRGB48)
+    {
+        vsapi->setError(out, "ColorBars: invalid format, only RGB30 and RGB48 for HDR formats");
         return;
     }
     d.vi.format = vsapi->getFormatPreset(pixformat, core);
@@ -581,18 +797,17 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.superwhite = !!d.superwhite;
     d.iq = vsapi->propGetInt(in, "iq", 0, &err);
     if (err)
-        d.iq = d.resolution < UHDTV1 ? IQ_BOTH : IQ_NONE;
+        d.iq = d.hdr ? IQ_NONE : d.resolution < UHDTV1 ? IQ_BOTH : IQ_NONE;
     if (d.iq < 0 || d.iq > 3)
     {
         vsapi->setError(out, "ColorBars: invalid I/Q mode");
         return;
     }
-
     d.wcg = vsapi->propGetInt(in, "wcg", 0, &err);
     if (err)
         d.wcg = 0;
     d.wcg = !!d.wcg;
-    if (d.wcg)
+    if (d.wcg && !d.hdr)
     {
         if (d.resolution < UHDTV1)
         {
@@ -607,10 +822,22 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     }
     if (d.resolution == UHDTV2)
     {
-        if (!d.wcg)
+        if (!d.wcg && !d.hdr)
             vsapi->logMessage(mtWarning, "ColorBars: wide color (Rec.2020) required with 8K/UHDTV2");
         if (d.iq == IQ_BOTH || d.iq == IQ_PLUS_I)
             vsapi->logMessage(mtWarning, "ColorBars: -I/+Q and +I not valid with 8K/UHDTV2 systems");
+    }
+    if (d.hdr)
+    {
+        if (d.resolution < HD1080)
+        {
+            vsapi->setError(out, "ColorBars: HDR mode only valid with 1080 or higher resolutions");
+            return;
+        }
+        if (d.wcg)
+            vsapi->logMessage(mtWarning, "ColorBars: HDR mode always uses wide color (Rec.2020). Setting wcg=1 has no effect.");
+        if (d.iq)
+            vsapi->logMessage(mtWarning, "ColorBars: I/Q is not valid option with HDR");
     }
 
     d.filter = vsapi->propGetInt(in, "filter", 0, &err);
@@ -618,8 +845,8 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
         d.filter = 1;
     d.filter = !!d.filter;
 
-    d.vi.fpsNum = 60000;
-    d.vi.fpsDen = 1001;
+    d.vi.fpsNum = resolutions[d.resolution][2];
+    d.vi.fpsDen = resolutions[d.resolution][3];
     d.vi.numFrames = 1;
     d.vi.flags = 0;
 
@@ -631,10 +858,11 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
 
 VS_EXTERNAL_API(void) VapourSynthPluginInit( VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin )
 {
-    configFunc( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 color bar generator for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin );
+    configFunc( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 and ITU-BT.2111 color bar generator for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin );
     registerFunc( "ColorBars",
                   "resolution:int:opt;"
-                  "pixelformat:int:opt;"
+                  "format:int:opt;"
+                  "hdr:int:opt;"
                   "wcg:int:opt;"
                   "compatability:int:opt;"
                   "subblack:int:opt;"
