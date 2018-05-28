@@ -1,5 +1,5 @@
 /*****************************************************************************
- * colorbars: a vapoursynth plugin for generating SMPTE RP 219 color bars
+ * colorbars: a vapoursynth plugin for generating color bar test patterns
  *****************************************************************************
  * VapourSynth plugin
  *     Copyright (C) 2018 Phillip Blucas
@@ -162,7 +162,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                                          { 324, 40, 122, 486 },
                                          { 320, 40, 120, 480 } };
 
-
         // [hdr system][bitdepth][value]
         const uint16_t hdr_p1_r[3][2][9] = { { {  414,  940,  940,   64,   64,  940,  940,   64,  414 },
                                                { 1656, 3760, 3760,  256,  256, 3760, 3760,  256, 1656 } },
@@ -222,14 +221,12 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                                                 { 2272, 1936, 1896,  256,  192,  256,  320,  256,  396,  256, 2288,  256, 2144, 2120, 1268 } },
                                               { {  589,  491,  478,    0,    0,    0,   20,    0,   41,    0,  593,    0,  551,  544,  296 },
                                                 { 2356, 1964, 1915,    0,    0,    0,   82,    0,  164,    0, 2375,    0, 2206, 2178, 1184 } } };
-
         const uint16_t hdr_p5_g[3][2][15] = { { {  719,  709,  706,   64,   48,   64,   80,   64,   99,   64,  721,   64,  286,  269,  147 },
                                                 { 2876, 2836, 2824,  256,  192,  256,  320,  256,  396,  256, 2884,  256, 1144, 1076,  588 } },
                                               { {  571,  566,  564,   64,   48,   64,   80,   64,   99,   64,  572,   64,  361,  350,  236 },
                                                 { 2284, 2264, 2256,  256,  192,  256,  320,  256,  396,  256, 2288,  256, 1444, 1400,  944 } },
                                               { {  592,  586,  584,    0,    0,    0,   20,    0,   41,    0,  593,    0,  347,  334,  201 },
                                                 { 2370, 2345, 2339,    0,    0,    0,   82,    0,  164,    0, 2375,    0, 1389, 1337,  805 } } };
-
         const uint16_t hdr_p5_b[3][2][15] = { { {  316,  718,  296,   64,   48,   64,   80,   64,   99,   64,  721,   64,  705,  164,  702 },
                                                 { 1264, 2872, 1184,  256,  192,  256,  320,  256,  396,  256, 2884,  256, 2820,  656, 2808 } },
                                               { {  381,  571,  368,   64,   48,   64,   80,   64,   99,   64,  572,   64,  564,  256,  562 },
@@ -302,7 +299,7 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                                            { 608, 412, 206, 206, 206, 206, 204, 204, 206, 206, 206, 206, 206, 206, 608 },   // 4K
                                            { 960, 824, 412, 412, 412, 412, 408, 408, 412, 412, 412, 412, 412, 412, 960 } }; // 8K
 
-                                                                                         // [hdr system][resolution][bar width]
+        // [hdr system][resolution][bar width]
         const int hdr_p4_widths[3][5][4] = { { {  240,  559, 1015,  106 }, // HLG
                                                {  304,  559, 1015,  170 },
                                                {  480, 1118, 2030,  212 },
@@ -416,7 +413,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 u += stride;
                 v += stride;
             }
-
         }
         else if (resolution == PAL)
         {
@@ -426,14 +422,12 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 uint16_t *edge_u = u;
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 10; bar++)
-                {
                     for (int i = 0; i < p1_widths[resolution][compat][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
                         *edge_y = pal_y[depth][bar];
                         *edge_u = pal_u[depth][bar];
                         *edge_v = pal_v[depth][bar];
                     }
-                }
                 y += stride;
                 u += stride;
                 v += stride;
@@ -498,7 +492,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 for (int bar = 0; bar < 2; bar++)
                     for (int i = 0; i < hdr_p4_widths[hdr - 1][resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
                         *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][bar] << shift;
-
                 uint16_t rampwidth = hdr_p4_widths[hdr - 1][resolution - 3][2];
                 uint16_t rampheight = hdr_p4_gray[hdr - 1][depth][2] - hdr_p4_gray[hdr - 1][depth][1];
                 float slope = (float)rampheight / (float)rampwidth;
@@ -547,7 +540,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 u += stride;
                 v += stride;
             }
-
             // pattern 2
             for (int h = 0; h < height / 12; h++)
             {
@@ -579,7 +571,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 u += stride;
                 v += stride;
             }
-
             // pattern 3
             for (int h = 0; h < height / 12; h++)
             {
@@ -623,7 +614,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 u += stride;
                 v += stride;
             }
-
             // pattern 4a
             for (int h = 0; h < height / 12; h++)
             {
@@ -641,7 +631,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                 u += stride;
                 v += stride;
             }
-
             // pattern 4b
             for (int h = 0; h < height / 12; h++)
             {
@@ -695,12 +684,10 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
                         *edge_u = p4_u[depth][bar];
                         *edge_v = p4_v[depth][bar];
                     }
-
                 y += stride;
                 u += stride;
                 v += stride;
             }
-
             // pattern 4c
             for (int h = 0; h < height / 12; h++)
             {
