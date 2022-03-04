@@ -98,3 +98,7 @@ On Mingw-w64 you can try something like the following:
 gcc -c colorbars.c -I include/vapoursynth -O3 -ffast-math -mfpmath=sse -msse2 -march=native -std=c99 -Wall
 gcc -shared -o colorbars.dll colorbars.o -Wl,--out-implib,colorbars.a
 ```
+You'll probably need this for Win32 stdcall:
+```
+gcc -shared -o colorbars.dll colorbars.o -Wl,--kill-at,--out-implib,colorbars.a
+```
