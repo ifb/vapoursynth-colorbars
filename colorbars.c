@@ -762,6 +762,8 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     int pixformat = vsapi->propGetInt(in, "format", 0, &err);
     if (err)
         vsapi->setError(out, "ColorBars: invalid format, only RGB30 and RGB48 for HDR formats");
+    const VSFormat *vsformat = vsapi->getFormatPreset(pixformat, core); // see vapoursynth/vapoursynth#726
+    pixformat = vsformat ? vsformat->id : 0;
     if (!d.hdr && pixformat != pfYUV444P12 && pixformat != pfYUV444P10)
     {
         vsapi->setError(out, "ColorBars: invalid format, only YUV444P10 and YUV444P12 for SDR formats");
