@@ -209,7 +209,7 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                                                 { {  64,   4, 1019 },
                                                   { 256,  16, 4079 } },
                                                 { {   0,   0, 1023 },
-                                                  {   0,   0, 4075 } } };
+                                                  {   0,   0, 4095 } } };
 
         const uint16_t hdr_p5_r[3][2][15] = { { {  713,  538,  512,   64,   48,   64,   80,   64,   99,   64,  721,   64,  651,  639,  227 },
                                                 { 2852, 2152, 2048,  256,  192,  256,  320,  256,  396,  256, 2884,  256, 2604, 2556,  908 } },
@@ -295,22 +295,37 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                                            { 608, 412, 206, 206, 206, 206, 204, 204, 206, 206, 206, 206, 206, 206, 608 },   // 4K
                                            { 960, 824, 412, 412, 412, 412, 408, 408, 412, 412, 412, 412, 412, 412, 960 } }; // 8K
 
-        // [hdr system][resolution][bar width]
-        const int hdr_p4_widths[3][5][4] = { { {  240,  559, 1015,  106 }, // HLG
-                                               {  304,  559, 1015,  170 },
-                                               {  480, 1118, 2030,  212 },
-                                               {  608, 1118, 2030,  340 },
-                                               {  960, 2236, 4060,  424 } } ,
-                                             { {  240,  559, 1015,  106 }, // PQ
-                                               {  304,  559, 1015,  170 },
-                                               {  480, 1118, 2030,  212 },
-                                               {  608, 1118, 2030,  340 },
-                                               {  960, 2236, 4060,  424 } } ,
-                                             { {  240,  551, 1023,  106 }, // PQ full range
-                                               {  304,  551, 1023,  170 },
-                                               {  480, 1102, 2046,  212 },
-                                               {  608, 1102, 2046,  340 },
-                                               {  960, 2204, 4092,  424 } } };
+        // [depth][hdr system][resolution][bar width]
+        const int hdr_p4_widths[2][3][5][4] = { { { {  240,  559, 1014,  107 }, // HLG 10-bit
+                                                    {  304,  559, 1014,  171 },
+                                                    {  480, 1118, 2028,  214 },
+                                                    {  608, 1118, 2028,  342 },
+                                                    {  960, 2236, 4056,  428 } } ,
+                                                  { {  240,  559, 1014,  107 }, // PQ 10-bit
+                                                    {  304,  559, 1014,  171 },
+                                                    {  480, 1118, 2028,  214 },
+                                                    {  608, 1118, 2028,  342 },
+                                                    {  960, 2236, 4056,  428 } } ,
+                                                  { {  240,  551, 1022,  107 }, // PQ full range 10-bit
+                                                    {  304,  551, 1022,  171 },
+                                                    {  480, 1102, 2044,  214 },
+                                                    {  608, 1102, 2044,  342 },
+                                                    {  960, 2204, 4088,  428 } } } ,
+                                                { { {  240,  559, 1015,  106 }, // HLG 12-bit
+                                                    {  304,  559, 1015,  170 },
+                                                    {  480, 1117, 2031,  212 },
+                                                    {  608, 1117, 2031,  340 },
+                                                    {  960, 2233, 4062,  425 } } ,
+                                                  { {  240,  559, 1015,  106 }, // PQ 12-bit
+                                                    {  304,  559, 1015,  170 },
+                                                    {  480, 1117, 2031,  212 },
+                                                    {  608, 1117, 2031,  340 },
+                                                    {  960, 2233, 4062,  425 } } ,
+                                                  { {  240,  551, 1023,  106 }, // PQ full range 12-bit
+                                                    {  304,  551, 1023,  170 },
+                                                    {  480, 1101, 2047,  212 },
+                                                    {  608, 1101, 2047,  340 },
+                                                    {  960, 2201, 4094,  425 } } } };
 
         const int hdr_p5_widths[5][15] = { {  80,   80,   80,  136,   70,   68,   70,   68,   70,  238,  438,  282,   80,   80,   80 },   // 1080
                                            { 144,   80,   80,  136,   70,   68,   70,   68,   70,  238,  438,  282,   80,   80,  144 },   // 2K
@@ -487,14 +502,14 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 uint16_t *edge_u = u;
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 2; bar++)
-                    for (int i = 0; i < hdr_p4_widths[hdr - 1][resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
+                    for (int i = 0; i < hdr_p4_widths[depth][hdr - 1][resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
                         *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][bar];
-                uint16_t rampwidth = hdr_p4_widths[hdr - 1][resolution - 3][2];
+                uint16_t rampwidth = hdr_p4_widths[depth][hdr - 1][resolution - 3][2];
                 uint16_t rampheight = hdr_p4_gray[hdr - 1][depth][2] - hdr_p4_gray[hdr - 1][depth][1];
                 float slope = (float)rampheight / (float)rampwidth;
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
                     *edge_y = *edge_u = *edge_v = (hdr_p4_gray[hdr - 1][depth][1] + i * slope);
-                for (int i = 0; i < hdr_p4_widths[hdr - 1][resolution - 3][3]; i++, edge_y++, edge_u++, edge_v++)
+                for (int i = 0; i < hdr_p4_widths[depth][hdr - 1][resolution - 3][3]; i++, edge_y++, edge_u++, edge_v++)
                     *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][2];
                 y += stride;
                 u += stride;

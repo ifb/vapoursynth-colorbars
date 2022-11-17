@@ -1,9 +1,9 @@
 Description
 ===========
 
-ColorBars is a filter for generating test signals.  The output is a single frame of color bars according to SMPTE RP 219-1, 219-2, or ITU-R BT.2111-0.  For NTSC, the bar pattern is described in SMPTE EG 1.  For PAL, EBU bars are generated.
+ColorBars is a filter for generating test signals.  The output is a single frame of color bars according to SMPTE RP 219-1, 219-2, or ITU-R BT.2111-2.  For NTSC, the bar pattern is described in SMPTE EG 1.  For PAL, EBU bars are generated.
 
-SMPTE RP 219-2 gives explicit color bar values in 10-bit and 12-bit Y'Cb'Cr'.  ITU BT.2111-0 gives explicit color bar values in 10-bit and 12-bit R'G'B'.  These values are used directly instead of being generated at runtime.
+SMPTE RP 219-2 gives explicit color bar values in 10-bit and 12-bit Y'Cb'Cr'.  ITU BT.2111-2 gives explicit color bar values in 10-bit and 12-bit R'G'B'.  These values are used directly instead of being generated at runtime.
 
 
 Usage
