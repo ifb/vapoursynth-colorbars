@@ -58,7 +58,7 @@ Note that bar transitions are not instant.  RP 219 requires proper shaping.  Ris
 
     # Generate 30 seconds of 1080i HD bars
     c = core.colorbars.ColorBars(format=vs.YUV444P10)
-    c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=2) # top field first
+    c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=vs.FIELD_TOP)
     c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
     c = core.resize.Point(clip=c,format=vs.YUV422P10)
     c = c * (30 * 30000 // 1001)
@@ -66,7 +66,7 @@ Note that bar transitions are not instant.  RP 219 requires proper shaping.  Ris
     
     # Generate 60 seconds of annoyingly "correct" NTSC bars
     c = core.colorbars.ColorBars(format=vs.YUV444P12, resolution=0, compatability=0)
-    c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=1) # bottom field first
+    c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=vs.FIELD_BOTTOM)
     c = core.std.Crop(c, 4, 4)
     c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
     c = core.resize.Point(clip=c,format=vs.YUV422P8)

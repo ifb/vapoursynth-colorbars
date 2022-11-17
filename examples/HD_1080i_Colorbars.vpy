@@ -6,7 +6,7 @@ seconds = 60
 
 # Generate HD 1080i Bars
 c = core.colorbars.ColorBars(format=vs.YUV444P10)
-c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=2) # top field first
+c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=vs.FIELD_TOP)
 c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
 c = core.resize.Point(clip=c,format=vs.YUV422P10)
 c = c * (seconds * 30000 // 1001)
