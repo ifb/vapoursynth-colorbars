@@ -2,7 +2,7 @@
  * colorbars: a vapoursynth plugin for generating color bar test patterns
  *****************************************************************************
  * VapourSynth plugin
- *     Copyright (C) 2018 Phillip Blucas
+ *     Copyright (C) 2022 Phillip Blucas
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,11 @@
 #include <ctype.h>
 #include <string.h>
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
+#include <VSConstants4.h>
+
+#define RETERROR(x) do { vsapi->mapSetError(out, (x)); return; } while (0)
 
 typedef enum {
     NTSC = 0,
@@ -45,7 +48,6 @@ typedef enum {
 
 typedef struct {
     VSVideoInfo vi;
-    VSNodeRef *node;
     system_type_e resolution;
     int hdr;
     int wcg;
@@ -56,15 +58,9 @@ typedef struct {
     int filter;
 } ColorBarsData;
 
-static void VS_CC colorbarsInit( VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi )
+static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void* instanceData, void** frameData, VSFrameContext* frameCtx, VSCore* core, const VSAPI* vsapi)
 {
-    ColorBarsData *d = (ColorBarsData *) * instanceData;
-    vsapi->setVideoInfo( &d->vi, 1, node );
-}
-
-static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi )
-{
-    ColorBarsData *d = (ColorBarsData *) * instanceData;
+    ColorBarsData *d = (ColorBarsData*)instanceData;
     if (activationReason == arInitial)
     {
         // [wcg][bitdepth][value]
@@ -326,35 +322,37 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
         const int resolution = d->resolution;
         const int hdr = d->hdr;
         const int wcg = d->wcg;
-        const int depth = d->vi.format->bitsPerSample == 10 ? 0 : 1;
+        const int depth = d->vi.format.bitsPerSample == 10 ? 0 : 1;
         const int iq = d->iq;
         const int height = d->vi.height;
         const int width = d->vi.width;
 
-        VSFrameRef *frame = 0;
-        frame = vsapi->newVideoFrame(d->vi.format, width, height, 0, core);
+        VSFrame *frame = 0;
+        frame = vsapi->newVideoFrame(&d->vi.format, width, height, 0, core);
+        VSMap *props = vsapi->getFramePropertiesRW(frame);
+
         if (hdr)
         {
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", 0, paReplace);
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", hdr == 1 ? 18 : 16, paReplace);
-            vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", 9, paReplace);
+            vsapi->mapSetInt(props, "_Matrix", VSC_MATRIX_RGB, maReplace);
+            vsapi->mapSetInt(props, "_Transfer", hdr == 1 ? VSC_TRANSFER_ARIB_B67 : VSC_TRANSFER_ST2084, maReplace);
+            vsapi->mapSetInt(props, "_Primaries", VSC_PRIMARIES_BT2020, maReplace);
         }
         else
         {
             if (resolution < HD720)
             {
-                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", resolution == PAL ? 5 : 6, paReplace);
-                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", 6, paReplace);
-                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", resolution == PAL ? 5 : 6, paReplace);
+                vsapi->mapSetInt(props, "_Matrix", resolution == PAL ? VSC_MATRIX_BT470_BG : VSC_MATRIX_ST170_M, maReplace);
+                vsapi->mapSetInt(props, "_Transfer", VSC_TRANSFER_BT601, maReplace);
+                vsapi->mapSetInt(props, "_Primaries", resolution == PAL ? VSC_PRIMARIES_BT470_BG : VSC_PRIMARIES_ST170_M, maReplace);
             }
             else
             {
-                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Matrix", wcg ? 9 : 1, paReplace);
-                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Transfer", wcg ? 14 : 1, paReplace);
-                vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_Primaries", wcg ? 9 : 1, paReplace);
+                vsapi->mapSetInt(props, "_Matrix", wcg ? VSC_MATRIX_BT2020_NCL : VSC_MATRIX_BT709, maReplace);
+                vsapi->mapSetInt(props, "_Transfer", wcg ? VSC_TRANSFER_BT2020_10 : VSC_TRANSFER_BT709, maReplace);
+                vsapi->mapSetInt(props, "_Primaries", wcg ? VSC_PRIMARIES_BT2020 : VSC_PRIMARIES_BT709, maReplace);
             }
         }
-        vsapi->propSetInt(vsapi->getFramePropsRW(frame), "_ColorRange", hdr == 3 ? 0 : 1, paReplace); // limited, unless full range PQ
+        vsapi->mapSetInt(props, "_ColorRange", hdr == 3 ? 0 : 1, maReplace); // limited, unless full range PQ
 
         uint16_t *y = (uint16_t *)vsapi->getWritePtr(frame, 0);
         uint16_t *u = (uint16_t *)vsapi->getWritePtr(frame, 1);
@@ -714,7 +712,6 @@ static const VSFrameRef *VS_CC colorbarsGetFrame( int n, int activationReason, v
 static void VS_CC colorbarsFree( void *instanceData, VSCore *core, const VSAPI *vsapi )
 {
     ColorBarsData *d = (ColorBarsData *)instanceData;
-    vsapi->freeNode( d->node );
     free( d );
 }
 
@@ -724,20 +721,17 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     ColorBarsData *data;
 
     int err = 0;
-    d.compatability = vsapi->propGetInt(in, "compatability", 0, &err);
+    d.compatability = vsapi->mapGetInt(in, "compatability", 0, &err);
     if (err)
         d.compatability = 2;
-    if (d.compatability < 0 || d.compatability > 2) {
-        vsapi->setError(out, "ColorBars: invalid compatability mode");
-        return;
-    }
-    d.resolution = vsapi->propGetInt(in, "resolution", 0, &err);
+    if (d.compatability < 0 || d.compatability > 2)
+        RETERROR( "ColorBars: invalid compatability mode" );
+
+    d.resolution = vsapi->mapGetInt(in, "resolution", 0, &err);
     if (err)
         d.resolution = HD1080;
-    if (d.resolution < NTSC || d.resolution > UHDTV2) {
-        vsapi->setError(out, "ColorBars: invalid resolution");
-        return;
-    }
+    if (d.resolution < NTSC || d.resolution > UHDTV2)
+        RETERROR("ColorBars: invalid resolution");
 
     const int resolutions[8][4] = { {  720,  486, 30000, 1001 },
                                     {  720,  576,    25,    1 },
@@ -751,85 +745,64 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.vi.height = resolutions[d.resolution][1];
     if (d.compatability == 2 && d.resolution == NTSC)
         d.vi.height = 480;
-    d.hdr = vsapi->propGetInt(in, "hdr", 0, &err);
+    d.hdr = vsapi->mapGetInt(in, "hdr", 0, &err);
     if (err)
         d.hdr = 0;
     if (d.hdr < 0 || d.hdr > 3)
-    {
-        vsapi->setError(out, "ColorBars: invalid HDR mode");
-        return;
-    }
-    int pixformat = vsapi->propGetInt(in, "format", 0, &err);
-    if (err)
-        vsapi->setError(out, "ColorBars: invalid format, only RGB30 and RGB48 for HDR formats");
-    const VSFormat *vsformat = vsapi->getFormatPreset(pixformat, core); // see vapoursynth/vapoursynth#726
-    pixformat = vsformat ? vsformat->id : 0;
-    if (!d.hdr && pixformat != pfYUV444P12 && pixformat != pfYUV444P10)
-    {
-        vsapi->setError(out, "ColorBars: invalid format, only YUV444P10 and YUV444P12 for SDR formats");
-        return;
-    }
-    if (d.hdr && pixformat != pfRGB30 && pixformat != pfRGB48)
-    {
-        vsapi->setError(out, "ColorBars: invalid format, only RGB30 and RGB48 for HDR formats");
-        return;
-    }
-    d.vi.format = vsapi->getFormatPreset(pixformat, core);
+        RETERROR("ColorBars: invalid HDR mode");
 
-    d.subblack = vsapi->propGetInt(in, "subblack", 0, &err);
+    int pixformat = vsapi->mapGetInt(in, "format", 0, &err);
+    if (err)
+        RETERROR("ColorBars: invalid format");
+
+    vsapi->getVideoFormatByID(&d.vi.format, pixformat, core);
+    if (!d.hdr && pixformat != pfYUV444P12 && pixformat != pfYUV444P10)
+        RETERROR("ColorBars: invalid format, only YUV444P10 and YUV444P12 for SDR formats");
+    if (d.hdr && pixformat != pfRGB30 && pixformat != pfRGB48)
+        RETERROR( "ColorBars: invalid format, only RGB30 and RGB48 for HDR formats");
+
+    d.subblack = vsapi->mapGetInt(in, "subblack", 0, &err);
     if (err)
         d.subblack = 1;
     d.subblack = !!d.subblack;
-    d.superwhite = vsapi->propGetInt(in, "superwhite", 0, &err);
+    d.superwhite = vsapi->mapGetInt(in, "superwhite", 0, &err);
     if (err)
         d.superwhite = 1;
     d.superwhite = !!d.superwhite;
-    d.iq = vsapi->propGetInt(in, "iq", 0, &err);
+    d.iq = vsapi->mapGetInt(in, "iq", 0, &err);
     if (err)
         d.iq = d.hdr ? IQ_NONE : d.resolution < UHDTV1 ? IQ_BOTH : IQ_NONE;
     if (d.iq < 0 || d.iq > 3)
-    {
-        vsapi->setError(out, "ColorBars: invalid I/Q mode");
-        return;
-    }
-    d.wcg = vsapi->propGetInt(in, "wcg", 0, &err);
+        RETERROR("ColorBars: invalid I/Q mode");
+    d.wcg = vsapi->mapGetInt(in, "wcg", 0, &err);
     if (err)
         d.wcg = 0;
     d.wcg = !!d.wcg;
     if (d.wcg && !d.hdr)
     {
         if (d.resolution < UHDTV1)
-        {
-            vsapi->setError(out, "ColorBars: wide color (Rec.2020) only valid with UHDTV systems");
-            return;
-        }
+            RETERROR("ColorBars: wide color (Rec.2020) only valid with UHDTV systems");
         if (d.iq == IQ_BOTH || d.iq == IQ_PLUS_I)
-        {
-            vsapi->setError(out, "ColorBars: -I/+Q and +I not valid with wide color (Rec.2020)");
-            return;
-        }
+            RETERROR("ColorBars: -I/+Q and +I not valid with wide color (Rec.2020)");
     }
     if (d.resolution == UHDTV2)
     {
         if (!d.wcg && !d.hdr)
-            vsapi->logMessage(mtWarning, "ColorBars: wide color (Rec.2020) required with 8K/UHDTV2");
+            vsapi->logMessage(mtWarning, "ColorBars: wide color (Rec.2020) required with 8K/UHDTV2", core);
         if (d.iq == IQ_BOTH || d.iq == IQ_PLUS_I)
-            vsapi->logMessage(mtWarning, "ColorBars: -I/+Q and +I not valid with 8K/UHDTV2 systems");
+            vsapi->logMessage(mtWarning, "ColorBars: -I/+Q and +I not valid with 8K/UHDTV2 systems", core);
     }
     if (d.hdr)
     {
         if (d.resolution < HD1080)
-        {
-            vsapi->setError(out, "ColorBars: HDR mode only valid with 1080 or higher resolutions");
-            return;
-        }
+            RETERROR("ColorBars: HDR mode only valid with 1080 or higher resolutions");
         if (d.wcg)
-            vsapi->logMessage(mtWarning, "ColorBars: HDR mode always uses wide color (Rec.2020). Setting wcg=1 has no effect.");
+            vsapi->logMessage(mtWarning, "ColorBars: HDR mode always uses wide color (Rec.2020). Setting wcg=1 has no effect.", core);
         if (d.iq)
-            vsapi->logMessage(mtWarning, "ColorBars: I/Q is not valid option with HDR");
+            vsapi->logMessage(mtWarning, "ColorBars: I/Q is not valid option with HDR", core);
     }
 
-    d.filter = vsapi->propGetInt(in, "filter", 0, &err);
+    d.filter = vsapi->mapGetInt(in, "filter", 0, &err);
     if (err)
         d.filter = 1;
     d.filter = !!d.filter;
@@ -837,26 +810,26 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.vi.fpsNum = resolutions[d.resolution][2];
     d.vi.fpsDen = resolutions[d.resolution][3];
     d.vi.numFrames = 1;
-    d.vi.flags = 0;
 
-    data = malloc(sizeof(d));
+    data = (ColorBarsData*)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter( in, out, "ColorBars", colorbarsInit, colorbarsGetFrame, colorbarsFree, fmParallel, 0, data, core );
+    vsapi->createVideoFilter(out, "ColorBars", &d.vi, colorbarsGetFrame, colorbarsFree, fmParallel, NULL, 0, data, core);
 }
 
-VS_EXTERNAL_API(void) VapourSynthPluginInit( VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin )
+VS_EXTERNAL_API(void) VapourSynthPluginInit2( VSPlugin* plugin, const VSPLUGINAPI* vspapi)
 {
-    configFunc( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 and ITU-BT.2111 color bar generator for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin );
-    registerFunc( "ColorBars",
-                  "resolution:int:opt;"
-                  "format:int:opt;"
-                  "hdr:int:opt;"
-                  "wcg:int:opt;"
-                  "compatability:int:opt;"
-                  "subblack:int:opt;"
-                  "superwhite:int:opt;"
-                  "iq:int:opt;"
-                  "filter:int:opt;",
-                  colorbarsCreate, 0, plugin );
+    vspapi->configPlugin( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 and ITU-BT.2111 color bar generator for VapourSynth", VS_MAKE_VERSION(1, 0), VAPOURSYNTH_API_VERSION, 0, plugin );
+    vspapi->registerFunction( "ColorBars",
+                              "resolution:int:opt;"
+                              "format:int:opt;"
+                              "hdr:int:opt;"
+                              "wcg:int:opt;"
+                              "compatability:int:opt;"
+                              "subblack:int:opt;"
+                              "superwhite:int:opt;"
+                              "iq:int:opt;"
+                              "filter:int:opt;",
+                              "clip:vnode;",
+                              colorbarsCreate, NULL, plugin );
 }
