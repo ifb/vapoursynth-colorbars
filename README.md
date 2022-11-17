@@ -21,7 +21,7 @@ Usage
    * 6 - 4K
    * 7 - UHDTV2/8K
 
-* format: Either vs.YUV444P10 or vs.YUV444P12 are supported in SDR mode. Either vs.RGB30 or vs.RGB48 are supported in HDR mode. This is because SMPTE defines bar values in terms of Y'Cb'Cr' and ITU uses R'G'B'.  VapourSynth does not support 12-bit RGB, so 16-bit is used (vs.RGB48).
+* format: Either vs.YUV444P10 or vs.YUV444P12 are supported in SDR mode. Either vs.RGB30 or vs.RGB36 are supported in HDR mode. This is because SMPTE defines bar values in terms of Y'Cb'Cr' and ITU uses R'G'B'.
 
 * hdr: Non-zero values enable BT.2111 HDR mode as follows
    * 0 - SDR

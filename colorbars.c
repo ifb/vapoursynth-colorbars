@@ -433,7 +433,6 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
         }
         else if ( hdr ) // HDR systems
         {
-            const int shift = depth ? 4 : 0;
             // pattern 1 - 100% top strip
             for (int h = 0; h < height / 12; h++)
             {
@@ -443,9 +442,9 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 for (int bar = 0; bar < 9; bar++)
                     for (int i = 0; i < hdr_p1_widths[resolution-3][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
-                        *edge_y = hdr_p1_r[hdr-1][depth][bar] << shift;
-                        *edge_u = hdr_p1_g[hdr-1][depth][bar] << shift;
-                        *edge_v = hdr_p1_b[hdr-1][depth][bar] << shift;
+                        *edge_y = hdr_p1_r[hdr-1][depth][bar];
+                        *edge_u = hdr_p1_g[hdr-1][depth][bar];
+                        *edge_v = hdr_p1_b[hdr-1][depth][bar];
                     }
                 y += stride;
                 u += stride;
@@ -460,9 +459,9 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 for (int bar = 0; bar < 9; bar++)
                     for (int i = 0; i < hdr_p1_widths[resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
-                        *edge_y = hdr_p2_r[hdr - 1][depth][bar] << shift;
-                        *edge_u = hdr_p2_g[hdr - 1][depth][bar] << shift;
-                        *edge_v = hdr_p2_b[hdr - 1][depth][bar] << shift;
+                        *edge_y = hdr_p2_r[hdr - 1][depth][bar];
+                        *edge_u = hdr_p2_g[hdr - 1][depth][bar];
+                        *edge_v = hdr_p2_b[hdr - 1][depth][bar];
                     }
                 y += stride;
                 u += stride;
@@ -476,7 +475,7 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 15; bar++)
                     for (int i = 0; i < hdr_p3_widths[resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
-                        *edge_y = *edge_u = *edge_v = hdr_p3_gray[hdr - 1][depth][bar] << shift;
+                        *edge_y = *edge_u = *edge_v = hdr_p3_gray[hdr - 1][depth][bar];
                 y += stride;
                 u += stride;
                 v += stride;
@@ -489,14 +488,14 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 uint16_t *edge_v = v;
                 for (int bar = 0; bar < 2; bar++)
                     for (int i = 0; i < hdr_p4_widths[hdr - 1][resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
-                        *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][bar] << shift;
+                        *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][bar];
                 uint16_t rampwidth = hdr_p4_widths[hdr - 1][resolution - 3][2];
                 uint16_t rampheight = hdr_p4_gray[hdr - 1][depth][2] - hdr_p4_gray[hdr - 1][depth][1];
                 float slope = (float)rampheight / (float)rampwidth;
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
-                    *edge_y = *edge_u = *edge_v = (hdr_p4_gray[hdr - 1][depth][1] + i * slope) * (1 << depth * 4);
+                    *edge_y = *edge_u = *edge_v = (hdr_p4_gray[hdr - 1][depth][1] + i * slope);
                 for (int i = 0; i < hdr_p4_widths[hdr - 1][resolution - 3][3]; i++, edge_y++, edge_u++, edge_v++)
-                    *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][2] << shift;
+                    *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][2];
                 y += stride;
                 u += stride;
                 v += stride;
@@ -510,9 +509,9 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 for (int bar = 0; bar < 15; bar++)
                     for (int i = 0; i < hdr_p5_widths[resolution - 3][bar]; i++, edge_y++, edge_u++, edge_v++)
                     {
-                        *edge_y = hdr_p5_r[hdr - 1][depth][bar] << shift;
-                        *edge_u = hdr_p5_g[hdr - 1][depth][bar] << shift;
-                        *edge_v = hdr_p5_b[hdr - 1][depth][bar] << shift;
+                        *edge_y = hdr_p5_r[hdr - 1][depth][bar];
+                        *edge_u = hdr_p5_g[hdr - 1][depth][bar];
+                        *edge_v = hdr_p5_b[hdr - 1][depth][bar];
                     }
                 y += stride;
                 u += stride;
@@ -758,8 +757,8 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     vsapi->getVideoFormatByID(&d.vi.format, pixformat, core);
     if (!d.hdr && pixformat != pfYUV444P12 && pixformat != pfYUV444P10)
         RETERROR("ColorBars: invalid format, only YUV444P10 and YUV444P12 for SDR formats");
-    if (d.hdr && pixformat != pfRGB30 && pixformat != pfRGB48)
-        RETERROR( "ColorBars: invalid format, only RGB30 and RGB48 for HDR formats");
+    if (d.hdr && pixformat != pfRGB30 && pixformat != pfRGB36)
+        RETERROR( "ColorBars: invalid format, only RGB30 and RGB36 for HDR formats");
 
     d.subblack = vsapi->mapGetInt(in, "subblack", 0, &err);
     if (err)
