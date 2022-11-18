@@ -9,7 +9,7 @@ SMPTE RP 219-2 gives explicit color bar values in 10-bit and 12-bit Y'Cb'Cr'.  I
 Usage
 =====
 
-    colorbars.ColorBars([int resolution=3, int format=vs.YUV444P12, int hdr=0, int wcg=0, int compatability=2, int subblack=1, int superwhite=1, int iq=1])
+    colorbars.ColorBars([int resolution=3, int format=vs.YUV444P12, int hdr=0, int wcg=0, int compatability=2, int subblack=1, int superwhite=1, int iq=1, int halfline=0])
 
 * resolution: Ten different systems are supported as follows
    * 0 - NTSC (BT.601)
@@ -58,6 +58,8 @@ NTSC modes 0 and 1 have 486 active lines.  DVB/ATSC/DV/HDMI use 480 lines, like 
    * 3 - 100% white and 0% black
 
 The +I/-I/+Q values are conveniently specified in RP 219 for systems with Rec.709 primaries (HD up to 4K).  For NTSC, the values were calculated and later verified to match an Evertz SDI test signal generator.  Note that converting from YUV to RGB will produce out of range values.
+
+* halfline: For ultimate pedantry, perform halfline blanking on analog lines 284/263 (NTSC) and 23/623 (PAL).  Applies to NTSC and PAL resolutions only.
 
 Examples
 =====

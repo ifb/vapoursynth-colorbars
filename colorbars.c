@@ -57,6 +57,7 @@ typedef struct {
     int subblack;
     int superwhite;
     iq_mode_e iq;
+    int halfline;
     int filter;
 } ColorBarsData;
 
@@ -368,7 +369,7 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
         }
         else
         {
-            if (resolution < HD720)
+            if (resolution < HD720 || resolution > UHDTV2)
             {
                 if (resolution == PAL || resolution == PAL_4FSC)
                 {
@@ -449,6 +450,38 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 u += stride;
                 v += stride;
             }
+            if (d->halfline)
+            {
+                int blank_y = 64 * (depth * 4);
+                int blank_c = 512 * (depth * 4);
+
+                uint16_t* edge_y = (uint16_t*)vsapi->getWritePtr(frame, 0);
+                uint16_t* edge_u = (uint16_t*)vsapi->getWritePtr(frame, 1);
+                uint16_t* edge_v = (uint16_t*)vsapi->getWritePtr(frame, 2);
+                // video starts 41.259 us after 0H
+                int blankposition = resolution == NTSC_4FSC ? 461 : 413;
+                for (int i = 0; i < blankposition; i++)
+                {
+                    edge_y[i] = blank_y;
+                    edge_u[i] = blank_c;
+                    edge_v[i] = blank_c;
+                }
+
+                edge_y = (uint16_t*)vsapi->getWritePtr(frame, 0);
+                edge_u = (uint16_t*)vsapi->getWritePtr(frame, 1);
+                edge_v = (uint16_t*)vsapi->getWritePtr(frame, 2);
+                // video ends 30.592 us after 0H
+                blankposition = resolution == NTSC_4FSC ? 309 : 291;
+                edge_y += stride * (height - 1);
+                edge_u += stride * (height - 1);
+                edge_v += stride * (height - 1);
+                for (int i = blankposition; i < width; i++)
+                {
+                    edge_y[i] = blank_y;
+                    edge_u[i] = blank_c;
+                    edge_v[i] = blank_c;
+                }
+            }
         }
         else if (resolution == PAL || resolution == PAL_4FSC)
         {
@@ -467,6 +500,38 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 y += stride;
                 u += stride;
                 v += stride;
+            }
+            if (d->halfline)
+            {
+                int blank_y = 64 * (depth * 4);
+                int blank_c = 512 * (depth * 4);
+
+                uint16_t* edge_y = (uint16_t*)vsapi->getWritePtr(frame, 0);
+                uint16_t* edge_u = (uint16_t*)vsapi->getWritePtr(frame, 1);
+                uint16_t* edge_v = (uint16_t*)vsapi->getWritePtr(frame, 2);
+                // video starts 42.5 us after 0H
+                int blankposition = resolution == PAL_4FSC ? 580 : 410;
+                for (int i = 0; i < blankposition; i++)
+                {
+                    edge_y[i] = blank_y;
+                    edge_u[i] = blank_c;
+                    edge_v[i] = blank_c;
+                }
+
+                edge_y = (uint16_t*)vsapi->getWritePtr(frame, 0);
+                edge_u = (uint16_t*)vsapi->getWritePtr(frame, 1);
+                edge_v = (uint16_t*)vsapi->getWritePtr(frame, 2);
+                // video ends 30.35 us after 0H
+                blankposition = resolution == PAL_4FSC ? 365 : 278;
+                edge_y += stride * (height - 1);
+                edge_u += stride * (height - 1);
+                edge_v += stride * (height - 1);
+                for (int i = blankposition; i < width; i++)
+                {
+                    edge_y[i] = blank_y;
+                    edge_u[i] = blank_c;
+                    edge_v[i] = blank_c;
+                }
             }
         }
         else if ( hdr ) // HDR systems
@@ -841,6 +906,13 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
             vsapi->logMessage(mtWarning, "ColorBars: I/Q is not valid option with HDR", core);
     }
 
+    d.halfline = vsapi->mapGetInt(in, "halfline", 0, &err);
+    if (err)
+        d.halfline = 0;
+    d.halfline = !!d.halfline;
+    if (d.halfline && (d.resolution > PAL && d.resolution < NTSC_4FSC))
+        RETERROR("ColorBars: Half line blanking only valid with NTSC/PAL");
+
     d.filter = vsapi->mapGetInt(in, "filter", 0, &err);
     if (err)
         d.filter = 1;
@@ -868,6 +940,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit2( VSPlugin* plugin, const VSPLUGINAP
                               "subblack:int:opt;"
                               "superwhite:int:opt;"
                               "iq:int:opt;"
+                              "halfline:int:opt;"
                               "filter:int:opt;",
                               "clip:vnode;",
                               colorbarsCreate, NULL, plugin );
