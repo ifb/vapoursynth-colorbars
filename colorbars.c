@@ -366,6 +366,8 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
             vsapi->mapSetInt(props, "_Matrix", VSC_MATRIX_RGB, maReplace);
             vsapi->mapSetInt(props, "_Transfer", hdr == 1 ? VSC_TRANSFER_ARIB_B67 : VSC_TRANSFER_ST2084, maReplace);
             vsapi->mapSetInt(props, "_Primaries", VSC_PRIMARIES_BT2020, maReplace);
+            vsapi->mapSetInt(props, "_SARNum", 1, maReplace);
+            vsapi->mapSetInt(props, "_SARDen", 1, maReplace);
         }
         else
         {
@@ -373,22 +375,27 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
             {
                 if (resolution == PAL || resolution == PAL_4FSC)
                 {
-                    vsapi->mapSetInt(props, "_Matrix", resolution == VSC_MATRIX_BT470_BG, maReplace);
-                    vsapi->mapSetInt(props, "_Primaries", resolution == VSC_PRIMARIES_BT470_BG, maReplace);
+                    vsapi->mapSetInt(props, "_Matrix", VSC_MATRIX_BT470_BG, maReplace);
+                    vsapi->mapSetInt(props, "_Primaries", VSC_PRIMARIES_BT470_BG, maReplace);
+                    vsapi->mapSetInt(props, "_SARNum", resolution == PAL ? 128 : 547, maReplace);
+                    vsapi->mapSetInt(props, "_SARDen", resolution == PAL ? 117 : 657, maReplace);
                 }
                 else
                 {
-                    vsapi->mapSetInt(props, "_Matrix", resolution == VSC_MATRIX_ST170_M, maReplace);
-                    vsapi->mapSetInt(props, "_Primaries", resolution == VSC_PRIMARIES_ST170_M, maReplace);
+                    vsapi->mapSetInt(props, "_Matrix", VSC_MATRIX_ST170_M, maReplace);
+                    vsapi->mapSetInt(props, "_Primaries", VSC_PRIMARIES_ST170_M, maReplace);
+                    vsapi->mapSetInt(props, "_SARNum", resolution == NTSC ? 4320 : 352, maReplace);
+                    vsapi->mapSetInt(props, "_SARDen", resolution == NTSC ? 4739 : 413, maReplace);
                 }
                 vsapi->mapSetInt(props, "_Transfer", VSC_TRANSFER_BT601, maReplace);
-
             }
             else
             {
                 vsapi->mapSetInt(props, "_Matrix", wcg ? VSC_MATRIX_BT2020_NCL : VSC_MATRIX_BT709, maReplace);
                 vsapi->mapSetInt(props, "_Transfer", wcg ? VSC_TRANSFER_BT2020_10 : VSC_TRANSFER_BT709, maReplace);
                 vsapi->mapSetInt(props, "_Primaries", wcg ? VSC_PRIMARIES_BT2020 : VSC_PRIMARIES_BT709, maReplace);
+                vsapi->mapSetInt(props, "_SARNum", 1, maReplace);
+                vsapi->mapSetInt(props, "_SARDen", 1, maReplace);
             }
         }
         vsapi->mapSetInt(props, "_ColorRange", hdr == 3 ? 0 : 1, maReplace); // limited, unless full range PQ
