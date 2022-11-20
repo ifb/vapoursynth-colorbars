@@ -391,8 +391,9 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
             }
             else
             {
-                vsapi->mapSetInt(props, "_Matrix", wcg ? VSC_MATRIX_BT2020_NCL : VSC_MATRIX_BT709, maReplace);
-                vsapi->mapSetInt(props, "_Transfer", wcg ? VSC_TRANSFER_BT2020_10 : VSC_TRANSFER_BT709, maReplace);
+                vsapi->mapSetInt(props, "_Matrix",    wcg ? VSC_MATRIX_BT2020_NCL : VSC_MATRIX_BT709, maReplace);
+                vsapi->mapSetInt(props, "_Transfer", !wcg ? VSC_TRANSFER_BT709 :
+                                                    depth ? VSC_TRANSFER_BT2020_12 : VSC_TRANSFER_BT2020_10, maReplace);
                 vsapi->mapSetInt(props, "_Primaries", wcg ? VSC_PRIMARIES_BT2020 : VSC_PRIMARIES_BT709, maReplace);
                 vsapi->mapSetInt(props, "_SARNum", 1, maReplace);
                 vsapi->mapSetInt(props, "_SARDen", 1, maReplace);
