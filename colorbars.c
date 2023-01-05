@@ -831,7 +831,7 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     ColorBarsData *data;
 
     int err = 0;
-    d.compatability = (int)vsapi->mapGetInt(in, "compatability", 0, &err);
+    d.compatability = vsapi->mapGetIntSaturated(in, "compatability", 0, &err);
     if (err)
         d.compatability = 2;
     if (d.compatability < 0 || d.compatability > 2)
@@ -857,13 +857,13 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.vi.height = resolutions[d.resolution][1];
     if (d.compatability == 2 && (d.resolution == NTSC || d.resolution == NTSC_4FSC))
         d.vi.height = 480;
-    d.hdr = (int)vsapi->mapGetInt(in, "hdr", 0, &err);
+    d.hdr = vsapi->mapGetIntSaturated(in, "hdr", 0, &err);
     if (err)
         d.hdr = 0;
     if (d.hdr < 0 || d.hdr > 3)
         RETERROR("ColorBars: invalid HDR mode");
 
-    int pixformat = (int)vsapi->mapGetInt(in, "format", 0, &err);
+    int pixformat = vsapi->mapGetIntSaturated(in, "format", 0, &err);
     if (err)
         RETERROR("ColorBars: invalid format");
 
@@ -873,11 +873,11 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     if (d.hdr && pixformat != pfRGB30 && pixformat != pfRGB36)
         RETERROR( "ColorBars: invalid format, only RGB30 and RGB36 for HDR formats");
 
-    d.subblack = (int)vsapi->mapGetInt(in, "subblack", 0, &err);
+    d.subblack = vsapi->mapGetIntSaturated(in, "subblack", 0, &err);
     if (err)
         d.subblack = 1;
     d.subblack = !!d.subblack;
-    d.superwhite = (int)vsapi->mapGetInt(in, "superwhite", 0, &err);
+    d.superwhite = vsapi->mapGetIntSaturated(in, "superwhite", 0, &err);
     if (err)
         d.superwhite = 1;
     d.superwhite = !!d.superwhite;
@@ -886,7 +886,7 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
         d.iq = d.hdr ? IQ_NONE : d.resolution < UHDTV1 ? IQ_BOTH : IQ_NONE;
     if (d.iq < 0 || d.iq > 3)
         RETERROR("ColorBars: invalid I/Q mode");
-    d.wcg = (int)vsapi->mapGetInt(in, "wcg", 0, &err);
+    d.wcg = vsapi->mapGetIntSaturated(in, "wcg", 0, &err);
     if (err)
         d.wcg = 0;
     d.wcg = !!d.wcg;
@@ -914,14 +914,14 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
             vsapi->logMessage(mtWarning, "ColorBars: I/Q is not valid option with HDR", core);
     }
 
-    d.halfline = (int)vsapi->mapGetInt(in, "halfline", 0, &err);
+    d.halfline = vsapi->mapGetIntSaturated(in, "halfline", 0, &err);
     if (err)
         d.halfline = 0;
     d.halfline = !!d.halfline;
     if (d.halfline && (d.resolution > PAL && d.resolution < NTSC_4FSC))
         RETERROR("ColorBars: Half line blanking only valid with NTSC/PAL");
 
-    d.filter = (int)vsapi->mapGetInt(in, "filter", 0, &err);
+    d.filter = vsapi->mapGetIntSaturated(in, "filter", 0, &err);
     if (err)
         d.filter = 1;
     d.filter = !!d.filter;
