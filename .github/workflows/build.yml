@@ -1,0 +1,99 @@
+name: Build
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build-non-windows-wheel:
+    strategy:
+      matrix:
+        include:
+        - arch: linux_x86_64
+          runs-on: ubuntu-latest
+        - arch: linux_aarch64
+          runs-on: ubuntu-24.04-arm
+        - arch: macosx_x86_64
+          runs-on: macos-26-intel
+        - arch: macosx_arm64
+          runs-on: macos-26
+      fail-fast: false
+
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: pypa/cibuildwheel@v3.4.0
+      env:
+        CIBW_BUILD: cp314-*
+        CIBW_BUILD_FRONTEND: uv
+      with:
+        output-dir: dist
+        extras: uv
+
+    - name: Fix tag
+      run: |
+        pipx run wheel tags --remove --python-tag py3 --abi-tag none dist/*.whl
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: colorbars-${{ matrix.arch }}
+        path: dist
+
+  build-windows-wheel:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          mingw-w64-ucrt-x86_64-git
+          mingw-w64-ucrt-x86_64-ninja
+          mingw-w64-ucrt-x86_64-python-wheel
+          mingw-w64-ucrt-x86_64-toolchain
+          mingw-w64-ucrt-x86_64-uv
+
+    - name: Build
+      run: |
+        uv build -Csetup-args="-Dc_link_args=-static"
+
+    - name: Fix tag and strip dll
+      run: |
+        cd dist
+        wheel tags --remove --python-tag py3 --abi-tag none *.whl
+        wheel unpack --dest unpacked *.whl
+        rm *.whl
+        strip $(find . -name '*.dll')
+        wheel pack unpacked/*
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: colorbars-sdist
+        path: dist/*.tar.gz
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: colorbars-win_amd64
+        path: dist/*.whl
+
+  publish:
+    permissions:
+      id-token: write
+    needs: [build-non-windows-wheel, build-windows-wheel]
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v8
+      with:
+        path: dist
+        merge-multiple: true
+
+    - uses: pypa/gh-action-pypi-publish@release/v1

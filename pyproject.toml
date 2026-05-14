@@ -1,0 +1,32 @@
+[build-system]
+requires = ["meson-python", "VapourSynth>=74"]
+build-backend = "mesonpy"
+
+[project]
+name = "vapoursynth-colorbars"
+description = "SMPTE RP 219 and ITU-R BT.2111 color bar generator for VapourSynth"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-2.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["vapoursynth", "colorbars", "test-pattern"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Plugins",
+  "Natural Language :: English",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX",
+  "Operating System :: Unix",
+  "Programming Language :: C",
+  "Topic :: Multimedia :: Video",
+]
+dependencies = ["VapourSynth>=74"]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/ifb/vapoursynth-colorbars"
+Issues = "https://github.com/ifb/vapoursynth-colorbars/issues"
+
+[tool.meson-python.wheel]
+exclude = ["*.dll.a"]
