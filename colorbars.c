@@ -938,7 +938,7 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
 
 VS_EXTERNAL_API(void) VapourSynthPluginInit2( VSPlugin* plugin, const VSPLUGINAPI* vspapi)
 {
-    vspapi->configPlugin( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 and ITU-BT.2111 color bar generator for VapourSynth", VS_MAKE_VERSION(1, 0), VAPOURSYNTH_API_VERSION, 0, plugin );
+    vspapi->configPlugin( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 and ITU-BT.2111 color bar generator for VapourSynth", VS_MAKE_VERSION(1, 5), VAPOURSYNTH_API_VERSION, 0, plugin );
     vspapi->registerFunction( "ColorBars",
                               "resolution:int:opt;"
                               "format:int:opt;"

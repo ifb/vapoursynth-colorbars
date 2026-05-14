@@ -93,21 +93,22 @@ Note that bar transitions are not instant.  RP 219 requires proper shaping.  Ris
     c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
     c = core.resize.Point(clip=c,format=vs.YUV422P10,matrix_s="2020ncl")
 
-Compilation
-===========
-The usual autotools method:
+Installation
+============
+
+### pip
 ```
-./autogen.sh
-./configure
-make
+pip install vapoursynth-colorbars
 ```
 
-On Mingw-w64 you can try something like the following:
+### Meson (from source)
 ```
-gcc -c colorbars.c -I include/vapoursynth -O3 -ffast-math -mfpmath=sse -msse2 -march=native -std=c99 -Wall
-gcc -shared -o colorbars.dll colorbars.o -Wl,--out-implib,colorbars.a
+meson setup build
+meson compile -C build
 ```
-You'll probably need this for Win32 stdcall:
+Requires VapourSynth >= R74.
+
+### Windows (MinGW-w64 one-shot)
 ```
-gcc -shared -o colorbars.dll colorbars.o -Wl,--kill-at,--out-implib,colorbars.a
+gcc -shared -o colorbars.dll colorbars.c -I include/vapoursynth -O3 -std=c99 -Wall
 ```
