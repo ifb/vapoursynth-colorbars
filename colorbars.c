@@ -930,7 +930,7 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.vi.fpsDen = resolutions[d.resolution][3];
     d.vi.numFrames = 1;
 
-    data = (ColorBarsData*)malloc(sizeof(d));
+    data = (ColorBarsData*)malloc(sizeof(ColorBarsData));
     *data = d;
 
     vsapi->createVideoFilter(out, "ColorBars", &d.vi, colorbarsGetFrame, colorbarsFree, fmParallel, NULL, 0, data, core);
