@@ -399,7 +399,7 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 vsapi->mapSetInt(props, "_SARDen", 1, maReplace);
             }
         }
-        vsapi->mapSetInt(props, "_ColorRange", hdr == 3 ? 0 : 1, maReplace); // limited, unless full range PQ
+        vsapi->mapSetInt(props, "_Range", hdr == 3 ? 0 : 1, maReplace); // limited, unless full range PQ
 
         uint16_t *y = (uint16_t *)vsapi->getWritePtr(frame, 0);
         uint16_t *u = (uint16_t *)vsapi->getWritePtr(frame, 1);
