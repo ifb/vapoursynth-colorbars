@@ -460,8 +460,8 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
             }
             if (d->halfline)
             {
-                int blank_y = 64 * (depth * 4);
-                int blank_c = 512 * (depth * 4);
+                int blank_y = depth ? 256 : 64;
+                int blank_c = depth ? 2048 : 512;
 
                 uint16_t* edge_y = (uint16_t*)vsapi->getWritePtr(frame, 0);
                 uint16_t* edge_u = (uint16_t*)vsapi->getWritePtr(frame, 1);
@@ -511,8 +511,8 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
             }
             if (d->halfline)
             {
-                int blank_y = 64 * (depth * 4);
-                int blank_c = 512 * (depth * 4);
+                int blank_y = depth ? 256 : 64;
+                int blank_c = depth ? 2048 : 512;
 
                 uint16_t* edge_y = (uint16_t*)vsapi->getWritePtr(frame, 0);
                 uint16_t* edge_u = (uint16_t*)vsapi->getWritePtr(frame, 1);
