@@ -17,8 +17,11 @@ incdir = include_directories(
 
 py = import('python').find_installation(pure: false)
 
+m_dep = meson.get_compiler('c').find_library('m', required: false)
+
 shared_module('colorbars',
     files('colorbars.c'),
+    dependencies: m_dep,
     gnu_symbol_visibility: 'hidden',
     include_directories: incdir,
     install: true,

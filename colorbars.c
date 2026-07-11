@@ -20,11 +20,16 @@
  *
  *****************************************************************************/
 #include <ctype.h>
+#include <math.h>
 #include <string.h>
 
 #include <VapourSynth4.h>
 #include <VSHelper4.h>
 #include <VSConstants4.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #define RETERROR(x) do { vsapi->mapSetError(out, (x)); return; } while (0)
 
@@ -60,6 +65,45 @@ typedef struct {
     int halfline;
     int filter;
 } ColorBarsData;
+
+// Shape the bar transitions of one plane by convolving each line with a
+// pulse, which turns every hard edge into the pulse's integrated step
+// response. RP 219-2 requires a rise/fall time of 4 luminance sample
+// periods (10% to 90%, tolerance +/-10%) shaped similar to an integrated
+// sine-squared pulse, so HD and higher systems use a sine-squared pulse.
+// BT.801-1 requires SD transitions shaped by the integral of a Blackman
+// pulse with a rise time of 150 ns for Y and 300 ns for Cb/Cr.
+static void shapeTransitions( uint16_t *plane, intptr_t stride, int width, int height, int taps, int blackman )
+{
+    double kernel[11], sum = 0.0;
+    for (int t = 0; t < taps; t++)
+    {
+        double x = (t + 1.0) / (taps + 1.0);
+        kernel[t] = blackman ? 0.42 - 0.5 * cos(2.0 * M_PI * x) + 0.08 * cos(4.0 * M_PI * x)
+                             : sin(M_PI * x) * sin(M_PI * x);
+        sum += kernel[t];
+    }
+    uint16_t *line = malloc(width * sizeof(uint16_t));
+    for (int h = 0; h < height; h++, plane += stride)
+    {
+        memcpy(line, plane, width * sizeof(uint16_t));
+        for (int x = 0; x < width; x++)
+        {
+            double acc = 0.0;
+            for (int t = 0; t < taps; t++)
+            {
+                int xt = x + t - taps / 2;
+                if (xt < 0)
+                    xt = 0;
+                if (xt > width - 1)
+                    xt = width - 1;
+                acc += kernel[t] * line[xt];
+            }
+            plane[x] = (uint16_t)lround(acc / sum);
+        }
+    }
+    free(line);
+}
 
 static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void* instanceData, void** frameData, VSFrameContext* frameCtx, VSCore* core, const VSAPI* vsapi)
 {
@@ -812,6 +856,25 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 y += stride;
                 u += stride;
                 v += stride;
+            }
+        }
+        if (d->filter)
+        {
+            // Tap counts are chosen so the 10%-90% rise time lands within
+            // the +/-10% tolerance at each system's sampling rate:
+            // 13.5 MHz    Y 3 taps ~ 149 ns, C 9 taps ~ 318 ns
+            // NTSC 4fsc   Y 3 taps ~ 140 ns, C 9 taps ~ 300 ns
+            // PAL 4fsc    Y 5 taps ~ 147 ns, C 11 taps ~ 295 ns
+            // HD and up   7 taps ~ 4.0 samples for all channels
+            // BT.2111 does not specify shaping, so HDR follows RP 219-2.
+            // [resolution]
+            const int y_taps[10] = { 3, 3, 7, 7, 7, 7, 7, 7, 3, 5 };
+            const int c_taps[10] = { 9, 9, 7, 7, 7, 7, 7, 7, 9, 11 };
+            const int blackman = resolution <= PAL || resolution >= NTSC_4FSC;
+            for (int plane = 0; plane < 3; plane++)
+            {
+                const int taps = plane && !hdr ? c_taps[resolution] : y_taps[resolution];
+                shapeTransitions((uint16_t *)vsapi->getWritePtr(frame, plane), stride, width, height, taps, blackman);
             }
         }
         return frame;

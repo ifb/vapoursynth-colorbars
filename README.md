@@ -9,7 +9,7 @@ SMPTE RP 219-2 gives explicit color bar values in 10-bit and 12-bit Y'Cb'Cr'.  I
 Usage
 =====
 
-    colorbars.ColorBars([int resolution=3, int format=vs.YUV444P12, int hdr=0, int wcg=0, int compatability=2, int subblack=1, int superwhite=1, int iq=1, int halfline=0])
+    colorbars.ColorBars([int resolution=3, int format=vs.YUV444P12, int hdr=0, int wcg=0, int compatability=2, int subblack=1, int superwhite=1, int iq=1, int halfline=0, int filter=1])
 
 * resolution: Ten different systems are supported as follows
    * 0 - NTSC (BT.601)
@@ -61,14 +61,14 @@ The +I/-I/+Q values are conveniently specified in RP 219 for systems with Rec.70
 
 * halfline: For ultimate pedantry, perform halfline blanking on analog lines 284/263 (NTSC) and 23/623 (PAL).  Applies to NTSC and PAL resolutions only.
 
+* filter: Shape the bar transitions instead of leaving instant edges.  RP 219 requires proper shaping: rise and fall times of 4 samples (10% to 90%, tolerance +/-10% of nominal) with a shape similar to an integrated sine-squared pulse.  HD and higher resolutions are shaped accordingly by convolving each line with a sine-squared pulse.  For NTSC and PAL, BT.801-1 applies instead: transitions are shaped by the integral of a Blackman pulse with rise times of 150 ns for Y and 300 ns for Cb/Cr.  BT.2111 does not specify shaping, so HDR patterns follow RP 219-2.  Flat areas away from transitions keep their exact code values either way.
+
 Examples
 =====
-Note that bar transitions are not instant.  RP 219 requires proper shaping.  Rise and fall times are 4 samples (10% to 90%) and +/-10% of the nominal value and the shape is recommended to be an integrated sine-squared pulse.  Shaping may be integrated into ColorBars later, but for now you can apply a horizontal blur.
 
     # Generate 30 seconds of 1080i HD bars
     c = core.colorbars.ColorBars(format=vs.YUV444P10)
     c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=vs.FIELD_TOP)
-    c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
     c = core.resize.Point(clip=c,format=vs.YUV422P10)
     c = c * (30 * 30000 // 1001)
     c = core.std.AssumeFPS(clip=c, fpsnum=30000, fpsden=1001)
@@ -77,20 +77,17 @@ Note that bar transitions are not instant.  RP 219 requires proper shaping.  Ris
     c = core.colorbars.ColorBars(format=vs.YUV444P12, resolution=0, compatability=0)
     c = core.std.SetFrameProp(clip=c, prop="_FieldBased", intval=vs.FIELD_BOTTOM)
     c = core.std.Crop(c, 4, 4)
-    c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
     c = core.resize.Point(clip=c,format=vs.YUV422P8)
     c = c * (60 * 30000 // 1001)
     c = core.std.AssumeFPS(clip=c, fpsnum=30000, fpsden=1001)
     
     # Generate UHD Bars with Rec.2020 primaries
     c = core.colorbars.ColorBars(format=vs.YUV444P12, resolution=5, wcg=1)
-    c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
     c = core.resize.Point(clip=c,format=vs.YUV422P10)
     c = core.std.AssumeFPS(clip=c, fpsnum=50, fpsden=1)
 
     # Generate HLG UHD Bars
     c = core.colorbars.ColorBars(format=vs.RGB30, resolution=5, hdr=1)
-    c = core.std.Convolution(c,mode="h",matrix=[1,2,4,2,1])
     c = core.resize.Point(clip=c,format=vs.YUV422P10,matrix_s="2020ncl")
 
 Installation
