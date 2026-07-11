@@ -648,7 +648,7 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 uint16_t rampheight = hdr_p4_gray[hdr - 1][depth][2] - hdr_p4_gray[hdr - 1][depth][1];
                 float slope = (float)rampheight / (float)rampwidth;
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
-                    *edge_y = *edge_u = *edge_v = (int)(hdr_p4_gray[hdr - 1][depth][1] + i * slope);
+                    *edge_y = *edge_u = *edge_v = lround(hdr_p4_gray[hdr - 1][depth][1] + i * slope);
                 for (int i = 0; i < hdr_p4_widths[depth][hdr - 1][resolution - 3][3]; i++, edge_y++, edge_u++, edge_v++)
                     *edge_y = *edge_u = *edge_v = hdr_p4_gray[hdr - 1][depth][2];
                 y += stride;
@@ -751,7 +751,7 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 float slope = (float)rampheight / (float)rampwidth;
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
                 {
-                    *edge_y = (int)(p3_y[wcg][depth][2] + i * slope);
+                    *edge_y = lround(p3_y[wcg][depth][2] + i * slope);
                     *edge_u = p3_u[wcg][depth][2];
                     *edge_v = p3_v[wcg][depth][2];
                 }
@@ -802,13 +802,13 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 float slope = (float)subblack * (float)rampheight / (float)rampwidth;
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
                 {
-                    *edge_y = (int)(p4_y[depth][1] - i * slope);
+                    *edge_y = lround(p4_y[depth][1] - i * slope);
                     *edge_u = p4_u[depth][1];
                     *edge_v = p4_v[depth][1];
                 }
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
                 {
-                    *edge_y = (int)(p4_y[depth][1 + subblack * 10] + i * slope);
+                    *edge_y = lround(p4_y[depth][1 + subblack * 10] + i * slope);
                     *edge_u = p4_u[depth][1];
                     *edge_v = p4_v[depth][1];
                 }
@@ -819,13 +819,13 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                 slope = (float)superwhite * (float)rampheight / (float)rampwidth;
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
                 {
-                    *edge_y = (int)(p4_y[depth][2] + i * slope);
+                    *edge_y = lround(p4_y[depth][2] + i * slope);
                     *edge_u = p4_u[depth][2];
                     *edge_v = p4_v[depth][2];
                 }
                 for (int i = 0; i < rampwidth; i++, edge_y++, edge_u++, edge_v++)
                 {
-                    *edge_y = (int)(p4_y[depth][2 + superwhite * 10] - i * slope);
+                    *edge_y = lround(p4_y[depth][2 + superwhite * 10] - i * slope);
                     *edge_u = p4_u[depth][2];
                     *edge_v = p4_v[depth][2];
                 }
@@ -1005,7 +1005,7 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
 
 VS_EXTERNAL_API(void) VapourSynthPluginInit2( VSPlugin* plugin, const VSPLUGINAPI* vspapi)
 {
-    vspapi->configPlugin( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 and ITU-BT.2111 color bar generator for VapourSynth", VS_MAKE_VERSION(1, 5), VAPOURSYNTH_API_VERSION, 0, plugin );
+    vspapi->configPlugin( "com.ifb.colorbars", "colorbars", "SMPTE RP 219-2:2016 and ITU-BT.2111 color bar generator for VapourSynth", VS_MAKE_VERSION(1, 6), VAPOURSYNTH_API_VERSION, 0, plugin );
     vspapi->registerFunction( "ColorBars",
                               "resolution:int:opt;"
                               "format:int:opt;"

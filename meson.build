@@ -3,7 +3,7 @@ project('colorbars', 'c',
     license: 'GPL-2.0-or-later',
     license_files: 'LICENSE',
     meson_version: '>=1.2.3',
-    version: '5',
+    version: '6',
 )
 
 incdir = include_directories(
