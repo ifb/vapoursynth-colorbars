@@ -983,6 +983,8 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.halfline = !!d.halfline;
     if (d.halfline && (d.resolution > PAL && d.resolution < NTSC_4FSC))
         RETERROR("ColorBars: Half line blanking only valid with NTSC/PAL");
+    if (d.halfline && d.compatability == 2)
+        RETERROR("ColorBars: Half line blanking not valid with compatability mode 2");
 
     d.filter = vsapi->mapGetIntSaturated(in, "filter", 0, &err);
     if (err)
