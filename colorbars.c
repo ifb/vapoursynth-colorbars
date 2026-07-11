@@ -660,8 +660,8 @@ static const VSFrame *VS_CC colorbarsGetFrame (int n, int activationReason, void
                     *edge_u = p2_u[wcg][depth][0];
                     *edge_v = p2_v[wcg][depth][0];
                 }
-                // sub-pattern *2: 100% white, -I, +I, or 75% white
-                int iqbar = iq ? iq + 8 : 1;
+                // sub-pattern *2: 75% white, -I, +I, or 100% white
+                int iqbar = iq == IQ_WHITE ? 1 : iq ? iq + 8 : 11;
                 for (int i = 0; i < p1_widths[resolution][compat][1]; i++, edge_y++, edge_u++, edge_v++)
                 {
                     *edge_y = p2_y[wcg][depth][iqbar];
