@@ -865,7 +865,7 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int pixformat = vsapi->mapGetIntSaturated(in, "format", 0, &err);
     if (err)
-        RETERROR("ColorBars: invalid format");
+        pixformat = d.hdr ? pfRGB36 : pfYUV444P12;
 
     vsapi->getVideoFormatByID(&d.vi.format, pixformat, core);
     if (!d.hdr && pixformat != pfYUV444P12 && pixformat != pfYUV444P10)
