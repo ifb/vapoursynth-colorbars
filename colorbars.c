@@ -906,8 +906,8 @@ static void VS_CC colorbarsCreate(const VSMap *in, VSMap *out, void *userData, V
     }
     if (d.hdr)
     {
-        if (d.resolution < HD1080)
-            RETERROR("ColorBars: HDR mode only valid with 1080 or higher resolutions");
+        if (d.resolution < HD1080 || d.resolution > UHDTV2)
+            RETERROR("ColorBars: HDR mode only valid with 1080, 2K, UHD, 4K, or 8K resolutions");
         if (d.wcg)
             vsapi->logMessage(mtWarning, "ColorBars: HDR mode always uses wide color (Rec.2020). Setting wcg=1 has no effect.", core);
         if (d.iq)
